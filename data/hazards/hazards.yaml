@@ -1,0 +1,8 @@
+# Датасет АэроРоуд — создан prepare_dataset.py
+train: images/train
+val: images/val
+
+names:
+  0: flooding
+  1: bridge_collapse
+  2: fallen_tree

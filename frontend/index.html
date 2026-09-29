@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>АэроРоуд — опасные явления на дорогах</title>
+  <link rel="icon" href="assets/logo-mark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Тема применяется до отрисовки, чтобы не было вспышки светлого фона.
+    try { if (localStorage.getItem('aeroroad.theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+  </script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ─── Шапка ─────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/logo-mark.png" alt="">
+      <div class="brand-name"><span class="brand-a">Аэро</span><span class="brand-b">Роуд</span></div>
+    </div>
+    <div class="vsep"></div>
+
+    <div class="project">
+      <button class="project-btn" data-act="toggleProjects">
+        <span id="project-label">Проект</span>
+        <span id="project-meta" class="muted-2"></span>
+        <span class="caret">▾</span>
+      </button>
+      <div id="project-menu" class="project-menu" hidden>
+        <div class="menu-title">Проекты</div>
+        <div id="project-list" class="project-list"></div>
+        <div class="menu-foot">
+          <input id="new-project" placeholder="Название проекта" maxlength="200">
+          <button class="btn-primary sm" data-act="createProject">Создать</button>
+        </div>
+        <div id="project-hint" class="menu-hint" hidden></div>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+    <div id="demo-pill" class="demo-pill" hidden></div>
+    <div class="api-state"><span id="api-dot" class="dot"></span><span id="api-label">Подключение…</span></div>
+  </header>
+
+  <div class="body">
+
+    <!-- ─── Навигация ───────────────────────────────────────────────────── -->
+    <nav class="rail">
+      <button class="rail-item" data-act="go" data-screen="map"><span class="ri">◎</span>Карта</button>
+      <button class="rail-item" data-act="go" data-screen="photos"><span class="ri">▦</span>Снимки</button>
+      <button class="rail-item" data-act="go" data-screen="zones"><span class="ri">◧</span>Участки</button>
+      <button class="rail-item" data-act="go" data-screen="layers"><span class="ri">⬗</span>Слои</button>
+      <div class="grow"></div>
+      <button class="rail-item" data-act="go" data-screen="settings"><span class="ri">⚙</span>Настройки</button>
+    </nav>
+
+    <!-- ─── Экран «Снимки» ───────────────────────────────────────────────── -->
+    <section class="screen page" data-screen-id="photos" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Снимки</h1>
+          <p class="sub">Что загружено, что уже обработано и где не хватает геопривязки.</p>
+        </div>
+        <div class="row gap8">
+          <button class="btn-primary" data-act="pickFiles">Загрузить снимки</button>
+          <button class="btn" data-act="pickFolder">Выбрать папку</button>
+        </div>
+      </div>
+      <div id="photo-stats" class="stats"></div>
+      <div class="card table">
+        <div class="tr th"><div>Файл</div><div>Геопривязка</div><div>Что нашли</div><div>Статус</div><div class="ta-r">Время</div></div>
+        <div id="photo-rows"></div>
+      </div>
+    </section>
+
+    <!-- ─── Экран «Участки» ─────────────────────────────────────────────── -->
+    <section class="screen page" data-screen-id="zones" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Участки</h1>
+          <p class="sub" id="zones-sub"></p>
+        </div>
+        <div class="seg">
+          <button data-act="filter" data-v="all">Все</button>
+          <button data-act="filter" data-v="red">Непроходимо</button>
+          <button data-act="filter" data-v="yellow">Риск</button>
+        </div>
+      </div>
+      <div id="zone-cards" class="col gap10"></div>
+    </section>
+
+    <!-- ─── Экран «Слои» ────────────────────────────────────────────────── -->
+    <section class="screen page" data-screen-id="layers" hidden>
+      <div class="page-head"><div>
+        <h1>Слои</h1>
+        <p class="sub">Что показывать на карте и насколько заметно.</p>
+      </div></div>
+      <div class="grid2">
+        <div class="card pad">
+          <h3>Подложка</h3>
+          <div id="basemap-list" class="col gap8"></div>
+        </div>
+        <div class="card pad">
+          <h3>Слои поверх карты</h3>
+          <div id="overlay-list" class="col"></div>
+          <label class="slider-row">
+            <span>Прозрачность снимков БАС</span>
+            <input type="range" id="overlay-opacity" min="0.2" max="1" step="0.05">
+            <span id="overlay-opacity-v" class="mono"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Экран «Настройки» ───────────────────────────────────────────── -->
+    <section class="screen page" data-screen-id="settings" hidden>
+      <div class="page-head"><div>
+        <h1>Настройки</h1>
+        <p class="sub">Как система обрабатывает снимки и когда предупреждает.</p>
+      </div></div>
+      <div class="col gap14 narrow">
+        <div class="card pad">
+          <h3>Внешний вид</h3>
+          <p class="note">Тёмная тема удобна в ночных сменах и в машине.</p>
+          <div class="row gap10">
+            <button class="theme-opt" data-act="theme" data-v="light">
+              <span class="theme-sw light"><i></i></span>
+              <span><b>Светлая</b><small>по умолчанию</small></span>
+            </button>
+            <button class="theme-opt" data-act="theme" data-v="dark">
+              <span class="theme-sw dark"><i></i></span>
+              <span><b>Тёмная</b><small>меньше засветки в темноте</small></span>
+            </button>
+          </div>
+        </div>
+        <div class="card pad">
+          <h3>Обработка снимков</h3>
+          <div id="settings-rows" class="col gap14"></div>
+        </div>
+        <div class="card pad">
+          <h3>Предупреждения</h3>
+          <div id="alert-rows" class="col"></div>
+        </div>
+        <div class="card pad">
+          <h3>Подключение</h3>
+          <p class="note">Адрес API. Пусто — тот же сервер, что отдал страницу (или http://localhost:8000, если страница открыта файлом).</p>
+          <div class="row gap8">
+            <input id="api-base" class="input grow" placeholder="http://localhost:8000">
+            <button class="btn" data-act="saveApiBase">Сохранить</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Экран «Карта» ───────────────────────────────────────────────── -->
+    <section class="screen map-screen" data-screen-id="map">
+
+      <aside class="left">
+        <div class="left-top">
+          <div class="label">Снимок</div>
+          <div id="last-photo"></div>
+
+          <div class="geo-box">
+            <div class="row between gap8">
+              <div class="t-2">Геоданных в снимке нет?</div>
+              <button class="link" data-act="toggleGeo" id="geo-toggle">Ввести вручную</button>
+            </div>
+            <div id="geo-form" class="col gap7 mt9" hidden>
+              <div class="note" id="geo-target"></div>
+              <input id="geo-place" class="input" placeholder="Дорога, километр или переправа">
+              <div class="row gap6">
+                <input id="geo-lat" class="input" inputmode="decimal" placeholder="Широта, 55.7558">
+                <input id="geo-lon" class="input" inputmode="decimal" placeholder="Долгота, 37.6173">
+              </div>
+              <div class="row gap6">
+                <input id="geo-yaw" class="input" inputmode="decimal" placeholder="Курс, ° (0 = С)">
+                <input id="geo-alt" class="input" inputmode="decimal" placeholder="Высота, м">
+              </div>
+              <div class="row gap8">
+                <button class="btn-primary sm" data-act="applyGeo">Привязать</button>
+                <button class="btn sm" data-act="pickOnMap">Указать на карте</button>
+              </div>
+              <div class="note" id="geo-status">Координаты в градусах, WGS 84.</div>
+            </div>
+          </div>
+
+          <div class="queue">
+            <div class="t-2" id="queue-label">Очередь пуста</div>
+            <div class="bar"><div id="queue-bar"></div></div>
+          </div>
+
+          <input type="file" id="file-input" accept="image/jpeg,image/png" multiple hidden>
+          <input type="file" id="folder-input" accept="image/jpeg,image/png" multiple webkitdirectory directory hidden>
+          <div class="dropzone" id="dropzone" data-act="pickFiles">
+            <div class="t-2">Перетащите снимки JPG / PNG</div>
+            <div class="tiny">или выберите папку на диске</div>
+          </div>
+        </div>
+
+        <div class="left-scroll">
+          <div class="label-row">
+            <div class="label">Что нашла модель</div>
+            <div class="tiny" id="model-label"></div>
+          </div>
+          <div id="class-rows" class="list"></div>
+          <div class="hr"></div>
+          <div class="label-row"><div class="label">Проблемные участки</div></div>
+          <div id="zone-rows" class="list"></div>
+        </div>
+
+        <div class="legend-box">
+          <div class="label">Как читать карту</div>
+          <div class="leg"><i class="lv-green"></i>Норма · проезд открыт</div>
+          <div class="leg"><i class="lv-yellow"></i>Риск</div>
+          <div class="leg"><i class="lv-red"></i>Непроходимо</div>
+        </div>
+      </aside>
+
+      <div class="map-wrap">
+        <div id="map" class="map"></div>
+
+        <div class="map-top">
+          <div class="row gap6">
+            <div class="seg map-seg" id="basemap-seg">
+              <button data-act="basemap" data-v="satellite">Спутник</button>
+              <button data-act="basemap" data-v="hybrid">Гибрид</button>
+              <button data-act="basemap" data-v="scheme">Схема</button>
+              <button data-act="basemap" data-v="contrast">Контраст</button>
+            </div>
+            <div class="chip" id="bas-chip"></div>
+          </div>
+          <div class="search">
+            <div class="search-box">
+              <span class="muted">⌕</span>
+              <input id="search" placeholder="Населённый пункт или участок" autocomplete="off">
+              <button class="link muted-2" data-act="clearSearch" id="search-clear" hidden>сброс</button>
+            </div>
+            <div id="search-results" class="search-results" hidden></div>
+          </div>
+        </div>
+
+        <div class="map-tools">
+          <button class="tool primary" title="Обновить данные" data-act="reload">⟳</button>
+          <button class="tool" title="Ручная привязка" data-act="openGeo">✎</button>
+          <button class="tool" title="Указать точку на карте" data-act="pickOnMap">⛶</button>
+          <button class="tool" title="Убрать метку поиска" data-act="clearSearch">⌖</button>
+          <button class="tool" title="Показать все снимки" data-act="fit">⟺</button>
+        </div>
+
+        <div id="pick-hint" class="pick-hint" hidden>
+          Кликните точку — центр снимка <span class="muted-2">Esc — отмена</span>
+        </div>
+
+        <div class="coords"><span id="c-lat"></span><span id="c-lon"></span><span class="sep">|</span><span>WGS 84</span></div>
+        <div class="zoom">
+          <button data-act="zoomOut">−</button><span id="zoom-label">z3</span><button data-act="zoomIn">+</button>
+        </div>
+      </div>
+
+      <aside class="right" id="sel-panel" hidden>
+        <div class="sel-head">
+          <div class="row between gap10">
+            <div class="mono tiny" id="sel-id"></div>
+            <div class="row gap8"><span class="badge" id="sel-badge"></span><button class="x" data-act="closeSel" title="Закрыть">×</button></div>
+          </div>
+          <div class="sel-type" id="sel-type"></div>
+          <div class="sel-place" id="sel-place"></div>
+        </div>
+        <div class="sel-body">
+          <div class="pad14">
+            <div class="label mb8">Подтверждающий снимок</div>
+            <div class="shot" id="sel-shot" data-act="openFrame">
+              <svg viewBox="0 0 320 190"><defs><pattern id="ph" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="5" height="10" class="ph1"/><rect x="5" width="5" height="10" class="ph2"/></pattern></defs><rect width="320" height="190" fill="url(#ph)"/><text x="160" y="100" text-anchor="middle">кадр БАС · кроп зоны</text></svg>
+              <div class="shot-tag" id="sel-frame"></div>
+            </div>
+            <div class="row gap6 mt8">
+              <button class="btn sm grow" data-act="openFrame">Открыть снимок</button>
+              <button class="btn sm grow" data-act="focusSel">Показать на карте</button>
+            </div>
+          </div>
+          <div class="hr"></div>
+          <div class="pad14">
+            <div class="label mb10">Что известно об участке</div>
+            <div id="sel-attrs" class="attrs"></div>
+            <div class="conf">
+              <div class="row between"><span>Уверенность модели</span><span class="mono" id="sel-conf"></span></div>
+              <div class="bar"><div id="sel-conf-bar"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="sel-foot">
+          <div class="row gap8">
+            <button class="btn lg grow" data-act="verify" data-v="confirmed">Всё верно</button>
+            <button class="btn lg grow" data-act="verify" data-v="false_positive">Ложное срабатывание</button>
+          </div>
+          <div class="tiny center" id="verify-status"></div>
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <div id="lightbox" class="lightbox" data-act="closeLightbox" hidden>
+    <img id="lightbox-img" alt="">
+    <div class="row gap14"><span id="lightbox-title"></span><span class="muted">клик для закрытия</span></div>
+  </div>
+  <div id="toast" class="toast" data-act="closeToast" hidden><span id="toast-text"></span><span class="muted">закрыть</span></div>
+  <div id="drop-veil" class="drop-veil" hidden>Отпустите, чтобы загрузить снимки</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

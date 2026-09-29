@@ -1,0 +1,135 @@
+{
+  "image_id": "2c880a94-fa69-44b9-9f8e-ed4c1c311b4a",
+  "image_url": "/static/uploads/2c880a94-fa69-44b9-9f8e-ed4c1c311b4a.jpg",
+  "image_width": 1600,
+  "image_height": 1200,
+  "footprint": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          38.17295393,
+          54.83946043
+        ],
+        [
+          38.17525394,
+          54.83853298
+        ],
+        [
+          38.17404607,
+          54.83753957
+        ],
+        [
+          38.17174606,
+          54.83846702
+        ],
+        [
+          38.17295393,
+          54.83946043
+        ]
+      ]
+    ]
+  },
+  "detections": [
+    {
+      "class": "flooding",
+      "label_ru": "Подтопление",
+      "confidence": 0.6551,
+      "severity": "red",
+      "bbox_px": [
+        492.5,
+        380.0,
+        1157.5,
+        862.5
+      ],
+      "polygon_wgs84": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              38.17327941,
+              54.83886037
+            ],
+            [
+              38.17423535,
+              54.8384749
+            ],
+            [
+              38.17374969,
+              54.83807547
+            ],
+            [
+              38.17279375,
+              54.83846094
+            ],
+            [
+              38.17327941,
+              54.83886037
+            ]
+          ]
+        ]
+      },
+      "center_wgs84": [
+        38.17351455,
+        54.83846792
+      ],
+      "area_m2": 4060.9,
+      "crop_url": "/static/uploads/2c880a94-fa69-44b9-9f8e-ed4c1c311b4a_det0.jpg"
+    }
+  ],
+  "overall_status": "red",
+  "processing_ms": 101,
+  "georef": {
+    "center": [
+      38.1735,
+      54.8385
+    ],
+    "altitude_m": 120.0,
+    "yaw_deg": 35.0,
+    "hfov_deg": 73.74,
+    "vfov_deg": 58.72,
+    "ground_width_m": 180.0,
+    "ground_height_m": 135.0,
+    "gsd_cm_per_px": 11.25,
+    "sources": {
+      "position": "exif:GPS",
+      "altitude": "xmp:RelativeAltitude",
+      "yaw": "xmp:GimbalYawDegree",
+      "fov": "exif:FocalLengthIn35mmFilm"
+    },
+    "warnings": [],
+    "overlay_bounds": [
+      [
+        54.83753957382087,
+        38.17174606431876
+      ],
+      [
+        54.83946042617914,
+        38.17525393568123
+      ]
+    ],
+    "overlay_corners": {
+      "top_left": [
+        54.83946042617914,
+        38.17295392692209
+      ],
+      "top_right": [
+        54.838532975958664,
+        38.17525393568123
+      ],
+      "bottom_left": [
+        54.83846702404134,
+        38.17174606431876
+      ],
+      "bottom_right": [
+        54.83753957382087,
+        38.1740460730779
+      ]
+    }
+  },
+  "model": {
+    "mode": "mock",
+    "weights": null,
+    "warning": "Нейросеть не загружена: RHD_DETECTOR=mock. Работает цветовая эвристика (синяя вода → flooding) только для демонстрации интерфейса."
+  }
+}

@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
+backend/data/
+backend/data-demo/
+backend/runs/
+*.pt
